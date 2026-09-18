@@ -14,7 +14,7 @@ def _option_price(S, K, T, r, sigma, option_type, q):
     raise ValueError("option_type must be 'call' or 'put'")
 
 
-def implied_volatility(
+def _implied_volatility_newton(
     market_price,
     S,
     K,
@@ -48,7 +48,7 @@ def implied_volatility(
 
     raise ValueError("Implied volatility did not converge")
 
-def implied_volatility_brent(
+def _implied_volatility_brent(
     market_price,
     S,
     K,
@@ -66,3 +66,35 @@ def implied_volatility_brent(
         )
 
     return brentq(objective, lower_bound, upper_bound)
+
+def implied_volatility(
+    market_price,
+    S,
+    K,
+    T,
+    r,
+    option_type="call",
+    q=0.0,
+    initial_guess=0.20,
+):
+    try:
+        return _implied_volatility_newton(
+            market_price,
+            S,
+            K,
+            T,
+            r,
+            option_type,
+            q,
+            initial_guess,
+        )
+    except ValueError:
+        return _implied_volatility_brent(
+            market_price,
+            S,
+            K,
+            T,
+            r,
+            option_type,
+            q,
+        )
