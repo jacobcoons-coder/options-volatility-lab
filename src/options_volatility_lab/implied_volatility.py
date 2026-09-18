@@ -1,0 +1,68 @@
+from scipy.optimize import brentq
+
+from options_volatility_lab.black_scholes import call_price, put_price
+from options_volatility_lab.greeks import vega
+
+
+def _option_price(S, K, T, r, sigma, option_type, q):
+    if option_type == "call":
+        return call_price(S, K, T, r, sigma, q)
+
+    if option_type == "put":
+        return put_price(S, K, T, r, sigma, q)
+
+    raise ValueError("option_type must be 'call' or 'put'")
+
+
+def implied_volatility(
+    market_price,
+    S,
+    K,
+    T,
+    r,
+    option_type="call",
+    q=0.0,
+    initial_guess=0.20,
+    tolerance=1e-8,
+    max_iterations=100,
+):
+    sigma = initial_guess
+
+    for _ in range(max_iterations):
+        model_price = _option_price(S, K, T, r, sigma, option_type, q)
+
+        difference = model_price - market_price
+
+        if abs(difference) < tolerance:
+            return sigma
+
+        option_vega = vega(S, K, T, r, sigma, q)
+
+        if abs(option_vega) < 1e-12:
+            raise ValueError("Vega is too small for Newton-Raphson")
+
+        sigma = sigma - difference / option_vega
+
+        if sigma <= 0:
+            raise ValueError("Newton-Raphson produced non-positive volatility")
+
+    raise ValueError("Implied volatility did not converge")
+
+def implied_volatility_brent(
+    market_price,
+    S,
+    K,
+    T,
+    r,
+    option_type="call",
+    q=0.0,
+    lower_bound=1e-6,
+    upper_bound=5.0,
+):
+    def objective(sigma):
+        return (
+            _option_price(S, K, T, r, sigma, option_type, q)
+            - market_price
+        )
+
+    return brentq(objective, lower_bound, upper_bound)
