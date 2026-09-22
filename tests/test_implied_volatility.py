@@ -85,4 +85,39 @@ def test_falls_back_to_brent_when_newton_fails(monkeypatch):
     )
 
     assert np.isclose(calculated_sigma, true_sigma, rtol=1e-6)
-    
+
+def test_call_price_below_arbitrage_bound_raises_error():
+    S = 100
+    K = 90
+    T = 1
+    r = 0.05
+
+    impossible_price = 10.00
+
+    with pytest.raises(ValueError):
+        implied_volatility(
+            impossible_price,
+            S,
+            K,
+            T,
+            r,
+            option_type="call",
+        )
+
+def test_put_price_above_arbitrage_bound_raises_error():
+    S = 100
+    K = 100
+    T = 1
+    r = 0.05
+
+    impossible_price = 100.00
+
+    with pytest.raises(ValueError):
+        implied_volatility(
+            impossible_price,
+            S,
+            K,
+            T,
+            r,
+            option_type="put",
+        )    

@@ -1,3 +1,4 @@
+import numpy as np
 from scipy.optimize import brentq
 
 from options_volatility_lab.black_scholes import call_price, put_price
@@ -67,6 +68,40 @@ def _implied_volatility_brent(
 
     return brentq(objective, lower_bound, upper_bound)
 
+def _validate_market_price(
+    market_price,
+    S,
+    K,
+    T,
+    r,
+    option_type,
+    q,
+):
+    discounted_spot = S * np.exp(-q * T)
+    discounted_strike = K * np.exp(-r * T)
+
+    if option_type == "call":
+        lower_bound = max(
+            0.0,
+            discounted_spot - discounted_strike,
+        )
+        upper_bound = discounted_spot
+
+    elif option_type == "put":
+        lower_bound = max(
+            0.0,
+            discounted_strike - discounted_spot,
+        )
+        upper_bound = discounted_strike
+
+    else:
+        raise ValueError("option_type must be 'call' or 'put'")
+
+    if not lower_bound <= market_price <= upper_bound:
+        raise ValueError(
+            "Market price violates no-arbitrage bounds"
+        )
+
 def implied_volatility(
     market_price,
     S,
@@ -77,6 +112,15 @@ def implied_volatility(
     q=0.0,
     initial_guess=0.20,
 ):
+    _validate_market_price(
+        market_price,
+        S,
+        K,
+        T,
+        r,
+        option_type,
+        q,
+    )
     try:
         return _implied_volatility_newton(
             market_price,
