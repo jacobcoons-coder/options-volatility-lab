@@ -49,7 +49,6 @@ def get_treasury_curve(row):
 
     valid = ~np.isnan(rates)
 
-
     return TREASURY_MATURITIES[valid], rates[valid]
 
 
@@ -86,4 +85,35 @@ def load_treasury_data(path):
     treasury = pd.read_csv(path)
 
     return prepare_treasury_data(treasury)
+
+def add_risk_free_rate(data, treasury):
+    data = data.copy()
+
+    data["risk_free_rate"] = np.nan
+
+    for date, group in data.groupby("date"):
+        available_data = treasury[
+            treasury["Date"] <= date
+        ]
+
+        if available_data.empty:
+            raise ValueError(
+                f"No Treasury data available on or before {date.date()}"
+            )
+
+        treasury_row = available_data.iloc[-1]
+
+        maturities, rates = get_treasury_curve(treasury_row)
+
+        interpolated_rates = np.interp(
+            group["T"],
+            maturities,
+            rates,
+        )
+
+        continuous_rates = np.log1p(interpolated_rates)
+
+        data.loc[group.index, "risk_free_rate"] = continuous_rates
+
+    return data
 
